@@ -39,11 +39,11 @@ impl<T> Mutex<T> {
     ///
     /// May be used statically:
     ///
-    /// ```
+    /// ```rust,ignore
     /// #![feature(const_fn)]
     /// use vitalloc;
     ///
-    /// static MUTEX: vitalloc::Mutex<()> = spin::Mutex::new(());
+    /// static MUTEX: vitalloc::Mutex<()> = vitalloc::Mutex::new(());
     ///
     /// fn demo() {
     ///     let lock = MUTEX.lock();
@@ -103,8 +103,8 @@ impl<T: ?Sized> Mutex<T> {
     /// The returned value may be dereferenced for data access
     /// and the lock will be dropped when the guard falls out of scope.
     ///
-    /// ```
-    /// let mylock = spin::Mutex::new(0);
+    /// ```rust,ignore
+    /// let mylock = vitalloc::Mutex::new(0);
     /// {
     ///     let mut data = mylock.lock();
     ///     // The lock is now locked and the data can be accessed
