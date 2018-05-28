@@ -14,7 +14,7 @@
 //! This crate was designed first as an allocator for the PS Vita game console,
 //! which provides a very limited memory allocation API: its allocator will only
 //! allocate memory blocks of `4kB`-aligned memory. As such, it cannot be used
-//! as a system allocator for smaller objects.
+//! as a performant system allocator for smaller objects.
 //!
 //! # Algorithm
 //!
@@ -44,11 +44,22 @@
 //!
 //! # Usage
 //!
-//! Use a growable allocator
+//! If you're compiling to PS Vita: use the included [`KernelAllocator`], which
+//! wraps the `psp2` kernel API:
+//!
+//! ```rust,ignore
+//! #![feature(global_allocator)]
+//! extern crate vitalloc;
+//!
+//! #[global_allocator]
+//! static ALLOC: vitalloc::Allocator =
+//!     vitalloc::Vitalloc::new(vitalloc::KernelAllocator::new());
+//! ```
 
-#![feature(alloc, allocator_api, const_fn)]
-#![crate_name = "vitalloc"]
-#![crate_type = "staticlib"]
+#![feature(alloc)]
+#![feature(allocator_api)]
+#![feature(const_fn)]
+#![feature(doc_cfg)]
 #![cfg_attr(not(test), no_std)]
 
 mod alloc;
@@ -68,7 +79,7 @@ extern crate psp2_sys;
 mod kernel;
 #[cfg(target_os = "vita")]
 mod mutex;
-#[cfg(target_os = "vita")]
+#[cfg(any(target_os = "vita", feature = "doc"))]
 pub use kernel::KernelAllocator;
 #[cfg(target_os = "vita")]
 pub use mutex::{Mutex, MutexGuard};

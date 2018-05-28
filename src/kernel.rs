@@ -24,10 +24,8 @@ use psp2_sys::kernel::threadmgr::sceKernelUnlockMutex;
 use psp2_sys::types::SceUID;
 use psp2_sys::void;
 
+#[doc(cfg(target_os = "vita"))]
 /// A Rust interface to the PS Vita kernel allocator.
-///
-/// Requires `target_os = "vita"`, which should only be the case when compiling
-/// for the **armv7-vita-eabihf** target.
 ///
 /// Uses the function [`sceKernelAllocMemBlock`] to allocate blocks of memory.
 /// This allocator will only create blocks of `4kB`-aligned memory. It won't perform
