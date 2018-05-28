@@ -1,0 +1,46 @@
+sudo: true
+# dist: trusty
+language: rust
+cache:
+  cargo: true
+  directories:
+    - "$VITASDK"
+
+addons:
+  apt:
+    packages:
+    - libssl-dev
+
+rust:
+  - nightly
+
+env:
+  global:
+    - VITASDK="$HOME/.local/share/vitasdk"
+
+before_install:
+  - mkdir -p "$VITASDK/src/vdpm"
+  - cd "$VITASDK/src/vdpm"
+  - [ -d ".git" ] && git pull || git clone https://github.com/vitasdk/vdpm
+  - ./bootstrap-vitasdk.sh
+  - export PATH=$VITASDK/bin:$PATH
+  - ./install-all.sh
+
+install:
+  - cargo install --debug -f cargo-make
+
+script:
+  - cargo test-native      # Check the library works
+  - cargo make build       # Check is compiles to armv7-vita-eabihf
+
+# deploy:
+#   provider: script
+#   script: cargo make publish-flow
+#   on:
+#     tags: true
+#     repo: vita-rust/vitalloc
+#     rust: stable
+
+notifications:
+  email:
+  - althonosdev@gmail.com
