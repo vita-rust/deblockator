@@ -15,7 +15,7 @@ use super::Mutex;
 
 pub const HEAP_BLOCK_SIZE: usize = 64 * 1024;
 pub const HEAP_BLOCK_PADDING: usize = 4 * 1024;
-pub const LARGE_OBJECT_SIZE: usize = 4096;
+pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
 
 /// A generic allocator using a linked heap, designed for the PS Vita.
 ///

@@ -6,7 +6,45 @@
 
 //! An allocator using a growable heap made of smaller linked memory blocks.
 //!
+//! Designed to work as a wrapper for more-limited fixed-size allocators, such
+//! as the ones found in embedded systems.
 //!
+//! # Introduction
+//!
+//! This crate was designed first as an allocator for the PS Vita game console,
+//! which provides a very limited memory allocation API: its allocator will only
+//! allocate memory blocks of `4kB`-aligned memory. As such, it cannot be used
+//! as a system allocator for smaller objects.
+//!
+//! # Algorithm
+//!
+//! The [`Allocator`] wraps another underlying allocator, and only uses it to
+//! allocate large memory blocks. It maintains a linked-list of small
+//! *heapblocks* which are constant-size memory blocks linked together
+//! to emulate a growable heap. Heapblocks have a default size of `64kB`.
+//!
+//! ## Allocation
+//!
+//! When a request is made to allocate memory, the allocator will iterate
+//! through all the heapblocks, using a **first-fit** allocation method to try
+//! to find an appropriate free memory location. If no heapblock can fit the
+//! requested layout, then a new heapblock is allocated.
+//!
+//! Allocation of very large layouts (more than `16kB`) are done using the
+//! underlying allocator directly. This avoids the possible case of memory
+//! retention with small blocks preventing the deallocation of a very large
+//! block, were the small block to outlive the larger one.
+//!
+//! ## Deallocation
+//!
+//! If the allocated layout size is larger than the large layout limit, we
+//! simply transmit the deallocation request to the underlying allocator.
+//! Otherwise, we traverse the heapblocks to find the one the memory block
+//! belongs to. A heapblock is deallocated when it is completely empty.
+//!
+//! # Usage
+//!
+//! Use a growable allocator
 
 #![feature(alloc, allocator_api, const_fn)]
 #![crate_name = "vitalloc"]

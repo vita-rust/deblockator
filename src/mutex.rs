@@ -83,7 +83,7 @@ impl<T: ?Sized> Mutex<T> {
         self.lock
     }
 
-    /// Locks the spinlock and returns a guard.
+    /// Locks the mutex and returns a guard.
     ///
     /// The returned value may be dereferenced for data access
     /// and the lock will be dropped when the guard falls out of scope.
@@ -107,7 +107,9 @@ impl<T: ?Sized> Mutex<T> {
         }
     }
 
-    /// Tries to lock the mutex. If it is already locked, it will return None. Otherwise it returns
+    /// Tries to lock the mutex.
+    ///
+    /// If it is already locked, it will return None. Otherwise it returns
     /// a guard within Some.
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
         let lock = self.init_lock();
