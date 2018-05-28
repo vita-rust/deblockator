@@ -10,7 +10,7 @@ load_script = ["if [ ! -f common.toml ]; then curl -SsL ${COMMON_TOML} > common.
 alias = "build"
 
 
-### CI #########################################################################
+### TESTING ####################################################################
 
 [tasks.build-native]
 command = "cargo"
@@ -19,13 +19,3 @@ args = ["build"]
 [tasks.test-native]
 command = "cargo"
 args = ["test"]
-
-[tasks.ci-install-vdpm]
-condition = { env = { "TRAVIS" = "true" } }
-script = [
-  'mkdir -p "$VITASDK/src/vdpm"',
-  'cd "$VITASDK/src/vdpm"',
-  '[ -d ".git" ] && git pull || git clone https://github.com/vitasdk/vdpm',
-  './bootstrap-vitasdk.sh',
-  './install-all.sh',
-]
