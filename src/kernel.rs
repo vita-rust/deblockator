@@ -26,6 +26,9 @@ use psp2_sys::void;
 
 /// A Rust interface to the PS Vita kernel allocator.
 ///
+/// Requires `target_os = "vita"`, which should only be the case when compiling
+/// for the **armv7-vita-eabihf** target.
+///
 /// Uses the function [`sceKernelAllocMemBlock`] to allocate blocks of memory.
 /// This allocator will only create blocks of `4kB`-aligned memory. It won't perform
 /// the alignement itself, so you have to make sure the `size` requested [`Layout`]

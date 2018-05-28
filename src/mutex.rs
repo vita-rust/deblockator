@@ -14,7 +14,7 @@ use psp2_sys::kernel::threadmgr::sceKernelTryLockMutex;
 use psp2_sys::kernel::threadmgr::sceKernelUnlockMutex;
 use psp2_sys::types::SceUID;
 
-/// This struct provides MUTual EXclusion using the Kernel API.
+/// A mutual exclusiong primitive which uses the PS Vita kernel API.
 pub struct Mutex<T: ?Sized> {
     lock: SceUID,        // the kernel lock
     init: AtomicBool,    // false until the lock initialization has started
@@ -36,21 +36,6 @@ unsafe impl<T: ?Sized + Send> Send for Mutex<T> {}
 
 impl<T> Mutex<T> {
     /// Creates a new lock wrapping the supplied data.
-    ///
-    /// May be used statically:
-    ///
-    /// ```rust,ignore
-    /// #![feature(const_fn)]
-    /// use vitalloc;
-    ///
-    /// static MUTEX: vitalloc::Mutex<()> = vitalloc::Mutex::new(());
-    ///
-    /// fn demo() {
-    ///     let lock = MUTEX.lock();
-    ///     // do something with lock
-    ///     drop(lock);
-    /// }
-    /// ```
     pub const fn new(user_data: T) -> Mutex<T> {
         Mutex {
             lock: 0,

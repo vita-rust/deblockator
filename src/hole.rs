@@ -1,6 +1,7 @@
 //! Heap allocation algorithm using a linked list.
 //!
-//! Adapted from [`linked_list_allocator`](https://github.com/phil-opp/linked-list-allocator).
+//! Adapted from [`linked_list_allocator`](https://github.com/phil-opp/linked-list-allocator)
+//! to work with several linked blocks instead of a single one.
 
 use core::alloc::AllocErr;
 use core::alloc::Layout;
@@ -325,11 +326,27 @@ mod tests {
             let mut block = [0u8; 4096];
             let addr = block[..].as_ptr() as usize;
             let block = HeapBlock::new(addr, block.len());
+            let layout = Layout::from_size_align_unchecked(32, 1);
 
-            let alloc = block.allocate_first_fit(Layout::from_size_align_unchecked(32, 16));
-            assert!(alloc.is_ok())
-            assert!(alloc.unwrap() as usize == addr as usize + size_of::<HeapBlock>());            
+            if let Ok(alloc) = block.allocate_first_fit(layout) {
+                assert_eq!(
+                    alloc.as_ptr() as usize,
+                    addr as usize + size_of::<HeapBlock>()
+                );
 
+                block.deallocate(alloc, Layout::from_size_align_unchecked(32, 1));
+            } else {
+                panic!("Could not allocate block.")
+            }
+
+            if let Ok(alloc) = block.allocate_first_fit(layout) {
+                assert_eq!(
+                    alloc.as_ptr() as usize,
+                    addr as usize + size_of::<HeapBlock>()
+                );
+            } else {
+                panic!("Could not allocate block.")
+            }
         }
     }
 

@@ -17,7 +17,7 @@ pub const HEAP_BLOCK_SIZE: usize = 64 * 1024;
 pub const HEAP_BLOCK_PADDING: usize = 4 * 1024;
 pub const LARGE_OBJECT_SIZE: usize = 4096;
 
-/// A generic allocator using an horizontal heap, designed for the PS Vita.
+/// A generic allocator using a linked heap, designed for the PS Vita.
 ///
 /// Horizontal heap-growth allows to emulate a vertically-infinite heap using
 /// independent memory blocks linked together as a linked list. This allows to
@@ -25,7 +25,7 @@ pub const LARGE_OBJECT_SIZE: usize = 4096;
 /// by creating a virtually growable heap, and using a plain heap allocator on it.
 ///
 /// This struct internals were adapted from [`linked-list-allocator`], although they
-/// do not share data layouts and synchronisation mechanisms.
+/// do not share the same data layouts and synchronisation mechanisms.
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
 pub struct Allocator<A: Alloc> {
@@ -78,8 +78,8 @@ unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
             let mut size = max(HeapBlock::min_size(), layout.size());
             Layout::from_size_align_unchecked(align_up(size, align_of::<Hole>()), layout.align())
         };
-        //
-        // // traverse the heap blocks to find an allocatable block
+
+        // traverse the heap blocks to find an allocatable block
         let mut next_block: *mut Option<&mut HeapBlock> = self.first_block.get();
         while let Some(ref mut block) = *next_block {
             if let Ok(ptr) = block.allocate_first_fit(block_layout) {
@@ -89,7 +89,8 @@ unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
         }
 
         // No block can contain the requested layout: allocate a new one !
-        let new_heap_layout = self.padded(layout, HEAP_BLOCK_PADDING);
+        let new_heap_layout =
+            Layout::from_size_align_unchecked(HEAP_BLOCK_SIZE, HEAP_BLOCK_PADDING);
         let new_heap_ptr = match allocator.alloc(new_heap_layout) {
             Ok(ptr) => ptr.as_ptr() as *mut Opaque,
             Err(_) => return ::core::ptr::null_mut::<*mut Opaque>() as *mut Opaque,
