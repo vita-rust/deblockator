@@ -1,15 +1,14 @@
-#![allow(unused_imports)]
 #![feature(alloc, allocator_api, const_fn)]
-#![cfg_attr(not(test), no_std)]
 #![crate_name = "vitalloc"]
 #![crate_type = "staticlib"]
-
-#[cfg(test)]
-use std as core;
+#![cfg_attr(not(test), no_std)]
 
 mod alloc;
 mod hole;
 mod utils;
+
+#[cfg(test)]
+use std as core;
 
 // Public reexport of the generic allocator.
 pub use alloc::Allocator;

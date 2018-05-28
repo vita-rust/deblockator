@@ -24,7 +24,7 @@ use psp2_sys::kernel::threadmgr::sceKernelUnlockMutex;
 use psp2_sys::types::SceUID;
 use psp2_sys::void;
 
-/// The PS Vita kernel allocator.
+/// A Rust interface to the PS Vita kernel allocator.
 ///
 /// Uses the function [`sceKernelAllocMemBlock`] to allocate blocks of memory.
 /// This allocator will only create blocks of `4kB`-aligned memory. It won't perform

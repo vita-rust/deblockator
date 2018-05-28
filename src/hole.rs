@@ -328,6 +328,8 @@ mod tests {
 
             let alloc = block.allocate_first_fit(Layout::from_size_align_unchecked(32, 16));
             assert!(alloc.is_ok())
+            assert!(alloc.unwrap() as usize == addr as usize + size_of::<HeapBlock>());            
+
         }
     }
 

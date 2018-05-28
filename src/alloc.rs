@@ -17,10 +17,17 @@ pub const HEAP_BLOCK_SIZE: usize = 64 * 1024;
 pub const HEAP_BLOCK_PADDING: usize = 4 * 1024;
 pub const LARGE_OBJECT_SIZE: usize = 4096;
 
-/// The PS Vita allocator.
+/// A generic allocator using an horizontal heap, designed for the PS Vita.
 ///
-/// Works by maintaining a non-continuous heap.
+/// Horizontal heap-growth allows to emulate a vertically-infinite heap using
+/// independent memory blocks linked together as a linked list. This allows to
+/// circumvent the PS Vita kernel limitations of allocating `4kB`-aligned memory
+/// by creating a virtually growable heap, and using a plain heap allocator on it.
 ///
+/// This struct internals were adapted from [`linked-list-allocator`], although they
+/// do not share data layouts and synchronisation mechanisms.
+///
+/// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
 pub struct Allocator<A: Alloc> {
     mutex: Mutex<()>,
     block_allocator: UnsafeCell<A>,
@@ -37,7 +44,7 @@ impl<A: Alloc + Default> Default for Allocator<A> {
 }
 
 impl<A: Alloc> Allocator<A> {
-    /// Create a new kernel allocator.
+    /// Create a new allocator instance, wrapping the given allocator.
     pub const fn new(alloc: A) -> Self {
         Allocator {
             mutex: Mutex::new(()),
@@ -112,7 +119,7 @@ unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
                 self.padded(layout, HEAP_BLOCK_PADDING),
             );
         } else {
-            // panic!("TODO");
+            // TODO
         }
 
         drop(lock)
