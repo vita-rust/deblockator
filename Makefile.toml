@@ -1,10 +1,13 @@
 extend = "common.toml"
 
-[env]
-COMMON_TOML = "https://github.com/vita-rust/common/raw/master/common.toml"
-
 [config]
-load_script = ["if [ ! -f common.toml ]; then curl -SsL ${COMMON_TOML} > common.toml; fi"]
+load_script = [
+  """
+  if [ ! -f common.toml ];
+    then curl -SsL https://github.com/vita-rust/common/raw/master/common.toml > common.toml;
+  fi
+  """
+]
 
 [tasks.default]
 alias = "build"
