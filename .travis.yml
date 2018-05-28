@@ -4,7 +4,8 @@ language: rust
 cache:
   cargo: true
   directories:
-    - "$VITASDK"
+    - "$VITASDK/src"
+    - "$VITASDK/bin"
 
 addons:
   apt:
@@ -17,21 +18,18 @@ rust:
 env:
   global:
     - VITASDK="$HOME/.local/share/vitasdk"
+    - PATH="$VITASDK/bin:$PATH"
+    - CARGO_MAKE_URL="https://bintray.com/sagiegurari/cargo-make/download_file?file_path=cargo-make_v"
 
-before_install:
-  - mkdir -p "$VITASDK/src/vdpm"
-  - cd "$VITASDK/src/vdpm"
-  - [ -d ".git" ] && git pull || git clone https://github.com/vitasdk/vdpm
-  - ./bootstrap-vitasdk.sh
-  - export PATH=$VITASDK/bin:$PATH
-  - ./install-all.sh
+before_install: # bootstrap cargo-make from latest available bintray release
+  - cargo install --debug cargo-make -f
 
 install:
-  - cargo install --debug -f cargo-make
+  - cargo make ci-install-vdpm
 
 script:
-  - cargo test-native      # Check the library works
-  - cargo make build       # Check is compiles to armv7-vita-eabihf
+  - cargo make test-native      # Check the library works
+  - cargo make build           # Check is compiles to armv7-vita-eabihf
 
 # deploy:
 #   provider: script
