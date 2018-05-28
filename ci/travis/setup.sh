@@ -55,8 +55,7 @@ mkdir -p $SCCACHE_DIR
 
 echo "Fetching latest Vita SDK..."
 
-mkdir -p "$VITASDK/src/vdpm"
-cd "$VITASDK/src/vdpm"
+cd "$VDPM_GIT_DIR"
 
 if [ -d ".git" ]; then
   git pull
@@ -65,4 +64,4 @@ else
 fi
 
 ./bootstrap-vitasdk.sh
-./install.sh
+./install-all.sh
