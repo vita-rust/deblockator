@@ -63,5 +63,14 @@ else
   git clone https://github.com/vitasdk/vdpm .
 fi
 
-./bootstrap-vitasdk.sh
+. include/install-vitasdk.sh
+. include/install-packages.sh
+
+echo "Installing dependencies..."
+sudo apt-get install libc6-i386 lib32stdc++6 lib32gcc1 patch
+
+echo "Downloading toolchain..."
+mkdir -p $VITASDK
+curl -SsL "$(get_download_link linux)" | tar xj -C $VITASDK --strip-components=1
+
 ./install-all.sh

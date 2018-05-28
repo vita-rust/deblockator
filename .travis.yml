@@ -23,15 +23,15 @@ env:
     - SCCACHE_DIR="$HOME/.cache/sccache"
     # vitasdk
     - VDPM_GIT_DIR="$HOME/.cache/vdpm"
-    - PATH="$VITASDK/bin:$PATH"
     - VITASDK="$HOME/.local/share/vitasdk"
+    - PATH="$VITASDK/bin:$PATH"
 
 install:
   - ci/travis/setup.sh
 
 script:
   - cargo make test-native      # Check the library works
-  - cargo make build           # Check is compiles to armv7-vita-eabihf
+  - cargo make -lverbose build           # Check is compiles to armv7-vita-eabihf
 
 # deploy:
 #   provider: script
