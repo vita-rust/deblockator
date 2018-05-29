@@ -3,8 +3,11 @@ name = "vitalloc"
 version = "0.1.0"
 authors = ["Martin Larralde <martin.larralde@ens-cachan.fr>"]
 
+[dependencies]
+typenum = "^1.0.0"
+
 [target.'cfg(target_os = "vita")'.dependencies]
 psp2-sys = { git = "https://github.com/vita-rust/psp2-sys" }
 
 [target.'cfg(not(target_os = "vita"))'.dependencies]
-spin = "*"
+spin = "^0.4.0"

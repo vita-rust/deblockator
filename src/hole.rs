@@ -9,7 +9,6 @@ use core::alloc::Opaque;
 use core::mem::size_of;
 use core::ptr::NonNull;
 
-use super::utils::align_down;
 use super::utils::align_up;
 
 /// A heap block.
@@ -169,8 +168,8 @@ fn split_hole(hole: HoleInfo, required_layout: Layout) -> Option<Allocation> {
             addr: aligned_hole.addr,
             size: required_size,
         },
-        front_padding: front_padding,
-        back_padding: back_padding,
+        front_padding,
+        back_padding,
     })
 }
 
@@ -186,7 +185,7 @@ fn allocate_first_fit(mut previous: &mut Hole, layout: Layout) -> Result<Allocat
         let allocation: Option<Allocation> = previous
             .next
             .as_mut()
-            .and_then(|current| split_hole(current.info(), layout.clone()));
+            .and_then(|current| split_hole(current.info(), layout));
         match allocation {
             Some(allocation) => {
                 // hole is big enough, so remove it from the list by updating the previous pointer
@@ -278,7 +277,7 @@ fn deallocate(mut hole: &mut Hole, addr: usize, mut size: usize) {
                 // after:   ___XXX__FFFF___    where F is the freed block
 
                 let new_hole = Hole {
-                    size: size,
+                    size,
                     next: hole.next.take(), // the reference to the Y block (if it exists)
                 };
                 // write the new hole to the freed memory

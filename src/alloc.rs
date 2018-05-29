@@ -4,18 +4,21 @@ use core::alloc::Layout;
 use core::alloc::Opaque;
 use core::cell::UnsafeCell;
 use core::cmp::max;
+use core::marker::PhantomData;
 use core::mem::align_of;
-use core::mem::size_of;
 use core::ptr::NonNull;
+
+use typenum::consts::U32768;
+use typenum::consts::U4096;
+use typenum::consts::U65536;
+use typenum::Less;
+use typenum::PowerOfTwo;
+use typenum::Unsigned;
 
 use super::hole::HeapBlock;
 use super::hole::Hole;
 use super::utils::align_up;
 use super::Mutex;
-
-pub const HEAP_BLOCK_SIZE: usize = 64 * 1024;
-pub const HEAP_BLOCK_PADDING: usize = 4 * 1024;
-pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
 
 /// A generic allocator using a linked heap, designed for the PS Vita.
 ///
@@ -27,26 +30,89 @@ pub const LARGE_OBJECT_SIZE: usize = 16 * 1024;
 /// This struct internals were adapted from [`linked-list-allocator`], although they
 /// do not share the same data layouts and synchronisation mechanisms.
 ///
+/// # Compile-time configuration
+///
+/// Allocation parameters can be changed at compile time using numeric types
+/// from the [`typenum`](https://docs.rs/typenum) crate. The parameters are
+/// defined (in the order of appearance in the struct signature):
+///
+/// * **BS** (block size): the size of a single heap block.
+/// * **BA** (block alignment): the alignment required for a heap block.
+/// * **LS** (large block size): the size above which an individual block is
+///   allocated instead of using heap blocks.
+//    *Must be lower than the block size !*
+/// * **LA** (large block alignment): the alignment required for a large block.
+///
+/// # Usage
+///
+///
+///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
-pub struct Allocator<A: Alloc> {
+pub struct Allocator<A, BS = U65536, BA = U4096, LS = U32768, LA = U4096>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
+    __block_size: PhantomData<BS>,
+    __block_padding: PhantomData<BA>,
+    __large_size: PhantomData<LS>,
+    __large_padding: PhantomData<LA>,
     mutex: Mutex<()>,
     block_allocator: UnsafeCell<A>,
     first_block: UnsafeCell<Option<&'static mut HeapBlock>>,
 }
 
-unsafe impl<A: Alloc> Sync for Allocator<A> {}
-unsafe impl<A: Alloc> Send for Allocator<A> {}
+unsafe impl<A, BS, BA, LS, LA> Sync for Allocator<A, BS, BA, LS, LA>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
+}
 
-impl<A: Alloc + Default> Default for Allocator<A> {
+unsafe impl<A, BS, BA, LS, LA> Send for Allocator<A, BS, BA, LS, LA>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
+}
+
+impl<A, BS, BA, LS, LA> Default for Allocator<A, BS, BA, LS, LA>
+where
+    A: Alloc + Default,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
     fn default() -> Self {
         Self::new(A::default())
     }
 }
 
-impl<A: Alloc> Allocator<A> {
+impl<A, BS, BA, LS, LA> Allocator<A, BS, BA, LS, LA>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
     /// Create a new allocator instance, wrapping the given allocator.
     pub const fn new(alloc: A) -> Self {
         Allocator {
+            __block_size: PhantomData,
+            __block_padding: PhantomData,
+            __large_size: PhantomData,
+            __large_padding: PhantomData,
             mutex: Mutex::new(()),
             block_allocator: UnsafeCell::new(alloc),
             first_block: UnsafeCell::new(None),
@@ -60,14 +126,21 @@ impl<A: Alloc> Allocator<A> {
     }
 }
 
-unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
+unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Allocator<A, BS, BA, LS, LA>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
     unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
         let lock = self.mutex.lock();
         let allocator = &mut *self.block_allocator.get();
 
         // if the requested memory block is large, simply dedicate a single block
-        if layout.size() >= LARGE_OBJECT_SIZE {
-            return match allocator.alloc(self.padded(layout, HEAP_BLOCK_PADDING)) {
+        if layout.size() >= LS::to_usize() {
+            return match allocator.alloc(self.padded(layout, LA::to_usize())) {
                 Ok(ptr) => ptr.as_ptr() as *mut Opaque,
                 Err(_) => ::core::ptr::null_mut::<u8>() as *mut Opaque,
             };
@@ -89,8 +162,7 @@ unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
         }
 
         // No block can contain the requested layout: allocate a new one !
-        let new_heap_layout =
-            Layout::from_size_align_unchecked(HEAP_BLOCK_SIZE, HEAP_BLOCK_PADDING);
+        let new_heap_layout = Layout::from_size_align_unchecked(BS::to_usize(), BA::to_usize());
         let new_heap_ptr = match allocator.alloc(new_heap_layout) {
             Ok(ptr) => ptr.as_ptr() as *mut Opaque,
             Err(_) => return ::core::ptr::null_mut::<*mut Opaque>() as *mut Opaque,
@@ -113,11 +185,11 @@ unsafe impl<A: Alloc> GlobalAlloc for Allocator<A> {
     unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
         let lock = self.mutex.lock();
 
-        if layout.size() > LARGE_OBJECT_SIZE {
+        if layout.size() > LS::to_usize() {
             let allocator = &mut *self.block_allocator.get();
             allocator.dealloc(
                 NonNull::new(ptr).unwrap(),
-                self.padded(layout, HEAP_BLOCK_PADDING),
+                self.padded(layout, LA::to_usize()),
             );
         } else {
             // TODO

@@ -60,7 +60,10 @@
 #![feature(allocator_api)]
 #![feature(const_fn)]
 #![feature(doc_cfg)]
+#![feature(trait_alias)]
 #![cfg_attr(not(test), no_std)]
+
+extern crate typenum;
 
 mod alloc;
 mod hole;
