@@ -42,8 +42,7 @@ within the `Allocator` struct:
 extern crate vitalloc;
 
 #[global_allocator]
-static ALLOC: vitalloc::Allocator =
-   vitalloc::Vitalloc::new(vitalloc::KernelAllocator::new());
+static ALLOC: vitalloc::Allocator = vitalloc::Vitalloc::new(vitalloc::KernelAllocator::new());
 ```
 
 The `Allocator` will use the kernel mutexes as a global lock. Compiling to the
@@ -52,7 +51,7 @@ PS Vita requires the [`psp2-sys`](https://github.com/vita-rust/psp2-sys) crate.
 
 ## Credits
 
-* [**VitaSDK team**](http://vitasdk.org/) for the `arm-vita-eabi` toolchain, `psp2` headers, etc.
+* [**VitaSDK team**](http://vitasdk.org/) for the `arm-vita-eabi` toolchain, `psp2` headers, ...
 * [**Team Molecule**](http://henkaku.xyz/) for the `Henkaku` hard work.
 
 

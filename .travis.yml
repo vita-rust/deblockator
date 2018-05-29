@@ -1,4 +1,4 @@
-sudo: true
+sudo: false
 # dist: trusty
 language: rust
 cache:
@@ -10,7 +10,10 @@ cache:
 addons:
   apt:
     packages:
-    - libssl-dev
+    - libc6-i386
+    - lib32stdc++6
+    - lib32gcc1
+    - patch
 
 rust:
   - nightly

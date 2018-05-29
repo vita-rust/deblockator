@@ -52,23 +52,9 @@ fi
 ### Setup vdpm #################################################################
 
 echo "Fetching latest Vita SDK..."
+RELEASES="https://api.github.com/repos/vitasdk/autobuilds/releases"
+LINK=$(curl -u ${GH_API_USER}:${GH_API_TOKEN} -SsL "$RELEASES" | grep "master-linux" | grep "browser_download_url" | head -n 1 | cut -d '"' -f 4)
 
-cd "$VDPM_GIT_DIR"
-
-if [ -d ".git" ]; then
-  git pull
-else
-  git clone https://github.com/vitasdk/vdpm .
-fi
-
-. include/install-vitasdk.sh
-. include/install-packages.sh
-
-echo "Installing dependencies..."
-sudo apt-get install libc6-i386 lib32stdc++6 lib32gcc1 patch
-
-echo "Downloading toolchain..."
+echo "Installing toolchain from $LINK..."
 mkdir -p $VITASDK
-curl -SsL "$(get_download_link linux)" | tar xj -C $VITASDK --strip-components=1
-
-./install-all.sh
+curl -SsL "$LINK" | tar xj -C $VITASDK --strip-components=1
