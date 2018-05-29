@@ -30,8 +30,8 @@ install:
   - ci/travis/setup.sh
 
 script:
-  - cargo make test-native      # Check the library works
-  - cargo make -lverbose build           # Check is compiles to armv7-vita-eabihf
+  - cargo make test-native     # Check the library works
+  - cargo make build           # Check is compiles to armv7-vita-eabihf
 
 # deploy:
 #   provider: script

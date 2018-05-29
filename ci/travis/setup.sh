@@ -27,7 +27,7 @@ if [ "$INSTALLED" = "$LATEST" ]; then
 else
   echo "Installing latest 'sccache' from mozilla/sccache"
   URL="https://github.com/mozilla/sccache/releases/download/${LATEST}/sccache-${LATEST}-x86_64-unknown-linux-musl.tar.gz"
-  curl -SsL $URL | tar xzv -C /tmp
+  curl -SsL $URL | tar xz -C /tmp
   mv /tmp/sccache-${LATEST}-x86_64-unknown-linux-musl/sccache $HOME/.cargo/bin/sccache
 fi
 
@@ -47,8 +47,6 @@ else
   echo "Installing latest 'cargo-make' from source"
   cargo install --debug -f cargo-make
 fi
-
-mkdir -p $SCCACHE_DIR
 
 
 ### Setup vdpm #################################################################
