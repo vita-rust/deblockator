@@ -1,12 +1,14 @@
-# `vitalloc` - a memory allocator for the PS Vita
+# `vitalloc`
+
+*A platform-agnostic memory allocator designed for the PS Vita*
 
 [![TravisCI](https://img.shields.io/travis/vita-rust/vitalloc/master.svg?maxAge=600&style=flat-square)](https://travis-ci.org/vita-rust/vitalloc/builds)
+[![Codecov](https://img.shields.io/codecov/c/github/vita-rust/vitalloc.svg?maxAge=600&style=flat-square)](https://codecov.io/github/vita-rust/vitalloc)
 [![Source](https://img.shields.io/badge/source-GitHub-303030.svg?maxAge=86400&style=flat-square)](https://github.com/vita-rust/vitalloc)
 [![CargoMake](https://img.shields.io/badge/built%20with-cargo--make-yellow.svg?maxAge=86400&style=flat-square)](https://sagiegurari.github.io/cargo-make)
 [![Changelog](https://img.shields.io/badge/keep%20a-changelog-8A0707.svg?maxAge=86400&style=flat-square)](http://keepachangelog.com/)
-<!-- [![Codecov](https://img.shields.io/codecov/c/github/althonos/packageurl-rs.svg?maxAge=600&style=flat-square)](https://codecov.io/github/althonos/packageurl-rs) -->
-<!-- [![Crate](https://img.shields.io/crates/v/packageurl.svg?maxAge=86400&style=flat-square)](https://crates.io/crates/packageurl) -->
-<!-- [![Documentation](https://img.shields.io/badge/docs-latest-4d76ae.svg?maxAge=86400&style=flat-square)](https://docs.rs/packageurl) -->
+[![Crate](https://img.shields.io/crates/v/vitalloc.svg?maxAge=86400&style=flat-square)](https://crates.io/crates/vitalloc)
+[![Documentation](https://img.shields.io/badge/docs-latest-4d76ae.svg?maxAge=86400&style=flat-square)](https://docs.rs/vitalloc)
 
 
 ## Introduction
@@ -51,8 +53,15 @@ PS Vita requires the [`psp2-sys`](https://github.com/vita-rust/psp2-sys) crate.
 
 ## Credits
 
+* [**Philipp Oppermann**](https://github.com/phil-opp/) for the
+  [Writing an OS in Rust], in particular the [Kernel Heap] section, as well
+  as the [`linked_list_allocator`] crate.
 * [**VitaSDK team**](http://vitasdk.org/) for the `arm-vita-eabi` toolchain, `psp2` headers, ...
 * [**Team Molecule**](http://henkaku.xyz/) for the `Henkaku` hard work.
+
+[Writing an OS in Rust]: https://os.phil-opp.com/
+[Kernel Heap]: https://os.phil-opp.com/kernel-heap/
+[`linked_list_allocator`]: https://crates.io/crates/linked_list_allocator
 
 
 ## Disclaimer
