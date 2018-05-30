@@ -2,12 +2,23 @@
 name = "vitalloc"
 version = "0.1.0"
 authors = ["Martin Larralde <martin.larralde@ens-cachan.fr>"]
+license = "MIT"
+description = "A platform-agnostic allocator designed for the PS Vita"
+repository = "https://github.com/vita-rust/vitalloc"
+readme = "README.md"
+keywords = ["ps-vita", "allocator"]
+categories = ["no-std", "memory-management"]
 
 [dependencies]
 typenum = "^1.0.0"
 
 [target.'cfg(target_os = "vita")'.dependencies]
-psp2-sys = { git = "https://github.com/vita-rust/psp2-sys" }
+vita-mutex = { git = "https://github.com/vita-rust/vita-mutex" }
 
 [target.'cfg(not(target_os = "vita"))'.dependencies]
 spin = "^0.4.0"
+
+[badges]
+travis-ci   = { repository = "vita-rust/vitalloc" }
+codecov     = { repository = "vita-rust/vitalloc" }
+maintenance = { status = "actively-developed" }

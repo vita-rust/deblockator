@@ -56,12 +56,15 @@
 //!     vitalloc::Vitalloc::new(vitalloc::KernelAllocator::new());
 //! ```
 
+#![cfg_attr(not(test), no_std)]
 #![feature(alloc)]
 #![feature(allocator_api)]
 #![feature(const_fn)]
 #![feature(doc_cfg)]
 #![feature(trait_alias)]
-#![cfg_attr(not(test), no_std)]
+
+#[cfg(test)]
+use std as core;
 
 extern crate typenum;
 
@@ -69,25 +72,16 @@ mod alloc;
 mod hole;
 mod utils;
 
-#[cfg(test)]
-use std as core;
-
 // Public reexport of the generic allocator.
 pub use alloc::Allocator;
 
-// PS Vita specific exports
+// PS Vita-specific
 #[cfg(target_os = "vita")]
-extern crate psp2_sys;
+extern crate vita_mutex;
 #[cfg(target_os = "vita")]
-mod kernel;
-#[cfg(target_os = "vita")]
-mod mutex;
-#[cfg(any(target_os = "vita", feature = "doc"))]
-pub use kernel::KernelAllocator;
-#[cfg(target_os = "vita")]
-pub use mutex::{Mutex, MutexGuard};
+pub use vita_mutex::{Mutex, MutexGuard};
 
-// Other targets exports (mostly for testing)
+// Non-PS Vita specific
 #[cfg(not(target_os = "vita"))]
 extern crate spin;
 #[cfg(not(target_os = "vita"))]

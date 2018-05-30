@@ -11,7 +11,6 @@ use core::ptr::NonNull;
 use typenum::consts::U32768;
 use typenum::consts::U4096;
 use typenum::consts::U65536;
-use typenum::Less;
 use typenum::PowerOfTwo;
 use typenum::Unsigned;
 
@@ -20,7 +19,7 @@ use super::hole::Hole;
 use super::utils::align_up;
 use super::Mutex;
 
-/// A generic allocator using a linked heap, designed for the PS Vita.
+/// A generic allocator using a linked heap made of smaller blocks.
 ///
 /// Horizontal heap-growth allows to emulate a vertically-infinite heap using
 /// independent memory blocks linked together as a linked list. This allows to
@@ -42,10 +41,6 @@ use super::Mutex;
 ///   allocated instead of using heap blocks.
 //    *Must be lower than the block size !*
 /// * **LA** (large block alignment): the alignment required for a large block.
-///
-/// # Usage
-///
-///
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
 pub struct Allocator<A, BS = U65536, BA = U4096, LS = U32768, LA = U4096>
