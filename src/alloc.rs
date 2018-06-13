@@ -1,7 +1,6 @@
 use core::alloc::Alloc;
 use core::alloc::GlobalAlloc;
 use core::alloc::Layout;
-use core::alloc::Opaque;
 use core::cell::UnsafeCell;
 use core::cmp::max;
 use core::marker::PhantomData;
@@ -129,15 +128,15 @@ where
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
 {
-    unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let lock = self.mutex.lock();
         let allocator = &mut *self.block_allocator.get();
 
         // if the requested memory block is large, simply dedicate a single block
         if layout.size() >= LS::to_usize() {
             return match allocator.alloc(self.padded(layout, LA::to_usize())) {
-                Ok(ptr) => ptr.as_ptr() as *mut Opaque,
-                Err(_) => ::core::ptr::null_mut::<u8>() as *mut Opaque,
+                Ok(ptr) => ptr.as_ptr() as *mut u8,
+                Err(_) => ::core::ptr::null_mut::<u8>(),
             };
         }
 
@@ -151,7 +150,7 @@ where
         let mut next_block: *mut Option<&mut HeapBlock> = self.first_block.get();
         while let Some(ref mut block) = *next_block {
             if let Ok(ptr) = block.allocate_first_fit(block_layout) {
-                return ptr.as_ptr() as *mut Opaque;
+                return ptr.as_ptr() as *mut u8;
             };
             next_block = &mut block.next;
         }
@@ -159,8 +158,8 @@ where
         // No block can contain the requested layout: allocate a new one !
         let new_heap_layout = Layout::from_size_align_unchecked(BS::to_usize(), BA::to_usize());
         let new_heap_ptr = match allocator.alloc(new_heap_layout) {
-            Ok(ptr) => ptr.as_ptr() as *mut Opaque,
-            Err(_) => return ::core::ptr::null_mut::<*mut Opaque>() as *mut Opaque,
+            Ok(ptr) => ptr.as_ptr() as *mut u8,
+            Err(_) => return ::core::ptr::null_mut::<u8>(),
             // Err(_) => return 0xDEADBEEF as usize as *mut _,
         };
 
@@ -168,16 +167,16 @@ where
         let new_block = HeapBlock::new(new_heap_ptr as usize, new_heap_layout.size());
         let new_block_ptr = match new_block.allocate_first_fit(block_layout) {
             Ok(mem) => mem.as_ptr() as *mut _,
-            Err(_) => return ::core::ptr::null_mut::<*mut Opaque>() as *mut Opaque,
+            Err(_) => return ::core::ptr::null_mut::<u8>(),
             // Err(_) => return 0xCAFEBABE as usize as *mut _,
         };
         *next_block = Some(new_block);
 
         drop(lock);
-        new_block_ptr as *mut Opaque
+        new_block_ptr
     }
 
-    unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let lock = self.mutex.lock();
 
         if layout.size() > LS::to_usize() {
