@@ -1,7 +1,6 @@
-// Copyright (c) 2018 Martin Larralde (martin.larralde@ens-cachan.fr)
-// See the COPYING file at the top-level directory of this repository.
+// Copyright (c) 2018 Martin Larralde (martin.larralde@ens-paris-saclay.fr)
 //
-// Licensed under MIT license (the LICENSE-MIT file). This file may not be
+// Licensed under MIT license (the COPYING file). This file may not be
 // copied, modified, or distributed except according to those terms.
 
 //! An allocator using a growable heap made of smaller linked memory blocks.
@@ -42,10 +41,35 @@
 //! Otherwise, we traverse the heapblocks to find the one the memory block
 //! belongs to. A heapblock is deallocated when it is completely empty.
 //!
+//! ## Synchronisation
+//!
+//! The [`Allocator`] can wraps non-global allocator, and needs a synchronisation
+//! primitive to avoid race conditions. This is done using a *spinning mutex*
+//! from the [`spin`] crate.
+//!
 //! # Usage
 //!
+//! ## Generic usage
+//!
+//! The provided [`Allocator`] wraps any object implementing [`Alloc`]. For
+//! instance, to use [`Allocator`] with the `system_allocator` to allocate the
+//! heapblocks:
+//! ```rust,ignore
+//! #![feature(global_allocator, alloc_system)]
+//! extern crate alloc_system;
+//! extern crate vitalloc;
+//!
+//! use alloc_system::System;
+//! use vitalloc::Allocator;
+//!
+//! #[global_allocator]
+//! static GLOBAL: Allocator<System> = Allocator::new(System);
+//! ```
+//!
+//! ## PS Vita target
+//!
 //! If you're compiling to PS Vita: use the included [`KernelAllocator`], which
-//! wraps the `psp2` kernel API:
+//! wraps the `psp2` kernel API using [`psp2-sys`] bindings:
 //!
 //! ```rust,ignore
 //! #![feature(global_allocator)]
@@ -66,6 +90,9 @@
 #[cfg(test)]
 use std as core;
 
+#[macro_use]
+extern crate cfg_if;
+extern crate spin;
 extern crate typenum;
 
 mod alloc;
@@ -75,14 +102,11 @@ mod utils;
 // Public reexport of the generic allocator.
 pub use alloc::Allocator;
 
-// PS Vita-specific
-#[cfg(target_os = "vita")]
-extern crate vita_mutex;
-#[cfg(target_os = "vita")]
-pub use vita_mutex::{Mutex, MutexGuard};
-
-// Non-PS Vita specific
-#[cfg(not(target_os = "vita"))]
-extern crate spin;
-#[cfg(not(target_os = "vita"))]
-pub use spin::{Mutex, MutexGuard};
+// Feature compilation of the kernel allocator
+cfg_if! {
+    if #[cfg(feature = "kernel-allocator")] {
+        extern crate psp2_sys;
+        mod kernel;
+        pub use kernel::KernelAllocator;
+    }
+}

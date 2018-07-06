@@ -10,16 +10,17 @@ keywords = ["ps-vita", "allocator"]
 categories = ["no-std", "memory-management"]
 
 [dependencies]
+cfg-if = "^0.1"
 typenum = "^1.0.0"
+spin = "^0.4.0"
+psp2-sys = { version = "^0.2", optional = true }
 
 [dev-dependencies]
 jemallocator = { version = "^0.1.0", features = ["alloc_trait"] }
 
-[target.'cfg(target_os = "vita")'.dependencies]
-vita-mutex = { git = "https://github.com/vita-rust/vita-mutex" }
-
-[target.'cfg(not(target_os = "vita"))'.dependencies]
-spin = "^0.4.0"
+[features]
+default = []
+kernel-allocator = ["psp2-sys"]
 
 [badges]
 travis-ci   = { repository = "vita-rust/vitalloc" }
