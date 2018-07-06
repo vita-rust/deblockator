@@ -17,7 +17,7 @@
 //!
 //! # Algorithm
 //!
-//! The [`Allocator`] wraps another underlying allocator, and only uses it to
+//! The [`Vitalloc`] wraps another underlying allocator, and only uses it to
 //! allocate large memory blocks. It maintains a linked-list of small
 //! *heapblocks* which are constant-size memory blocks linked together
 //! to emulate a growable heap. Heapblocks have a default size of `64kB`.
@@ -43,7 +43,7 @@
 //!
 //! ## Synchronisation
 //!
-//! The [`Allocator`] can wraps non-global allocator, and needs a synchronisation
+//! The [`Vitalloc`] can wraps non-global allocator, and needs a synchronisation
 //! primitive to avoid race conditions. This is done using a *spinning mutex*
 //! from the [`spin`] crate.
 //!
@@ -51,33 +51,35 @@
 //!
 //! ## Generic usage
 //!
-//! The provided [`Allocator`] wraps any object implementing [`Alloc`]. For
-//! instance, to use [`Allocator`] with the `system_allocator` to allocate the
+//! The provided [`Vitalloc`] wraps any object implementing [`Alloc`]. For
+//! instance, to use [`Vitalloc`] with the `system_allocator` to allocate the
 //! heapblocks:
-//! ```rust,ignore
+//! ```rust,no_run
 //! #![feature(global_allocator, alloc_system)]
 //! extern crate alloc_system;
 //! extern crate vitalloc;
 //!
 //! use alloc_system::System;
-//! use vitalloc::Allocator;
+//! use vitalloc::Vitalloc;
 //!
 //! #[global_allocator]
-//! static GLOBAL: Allocator<System> = Allocator::new(System);
+//! static GLOBAL: Vitalloc<System> = Vitalloc::new(System);
+//! # fn main() {}
 //! ```
 //!
 //! ## PS Vita target
 //!
-//! If you're compiling to PS Vita: use the included [`KernelAllocator`], which
+//! If you're compiling to PS Vita: use the included [`KernelVitalloc`], which
 //! wraps the `psp2` kernel API using [`psp2-sys`] bindings:
 //!
-//! ```rust,ignore
+//! ```rust,no_run
 //! #![feature(global_allocator)]
 //! extern crate vitalloc;
+//! use vitalloc::{Vitalloc, KernelAllocator};
 //!
 //! #[global_allocator]
-//! static ALLOC: vitalloc::Allocator =
-//!     vitalloc::Vitalloc::new(vitalloc::KernelAllocator::new());
+//! static GLOBAL: Vitalloc<KernelAllocator> = Vitalloc::new(KernelAllocator::new());
+//! # fn main() {}
 //! ```
 
 #![cfg_attr(not(test), no_std)]
@@ -100,7 +102,7 @@ mod hole;
 mod utils;
 
 // Public reexport of the generic allocator.
-pub use alloc::Allocator;
+pub use alloc::Vitalloc;
 
 // Feature compilation of the kernel allocator
 cfg_if! {

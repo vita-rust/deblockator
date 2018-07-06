@@ -43,7 +43,7 @@ use super::utils::align_up;
 /// * **`LA`** (large block alignment): the alignment required for a large block.
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
-pub struct Allocator<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
+pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
     BS: Unsigned,
@@ -60,7 +60,7 @@ where
     first_block: UnsafeCell<Option<&'static mut HeapBlock>>,
 }
 
-unsafe impl<A, BS, BA, LS, LA> Sync for Allocator<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> Sync for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned,
@@ -70,7 +70,7 @@ where
 {
 }
 
-unsafe impl<A, BS, BA, LS, LA> Send for Allocator<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> Send for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned,
@@ -80,7 +80,7 @@ where
 {
 }
 
-impl<A, BS, BA, LS, LA> Default for Allocator<A, BS, BA, LS, LA>
+impl<A, BS, BA, LS, LA> Default for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc + Default,
     BS: Unsigned,
@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<A, BS, BA, LS, LA> Allocator<A, BS, BA, LS, LA>
+impl<A, BS, BA, LS, LA> Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned,
@@ -103,7 +103,7 @@ where
 {
     /// Create a new allocator instance, wrapping the given allocator.
     pub const fn new(alloc: A) -> Self {
-        Allocator {
+        Vitalloc {
             __block_size: PhantomData,
             __block_padding: PhantomData,
             __large_size: PhantomData,
@@ -121,7 +121,7 @@ where
     }
 }
 
-unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Allocator<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned,

@@ -20,4 +20,4 @@ args = ["build"]
 
 [tasks.test-native]
 command = "cargo"
-args = ["test"]
+args = ["test", "--all-features"]
