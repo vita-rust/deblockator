@@ -5,15 +5,23 @@
 
 use core::alloc::AllocErr;
 use core::alloc::Layout;
+use core::marker::PhantomData;
 use core::mem::size_of;
 use core::ptr::NonNull;
+
+use typenum::consts::U1;
+use typenum::consts::U65536;
+use typenum::Unsigned;
 
 use super::utils::align_up;
 
 /// A heap block.
-pub struct HeapBlock {
+pub struct HeapBlock<BS = U65536>
+where
+    BS: Unsigned,
+{
+    __block_size: PhantomData<BS>,
     pub next: Option<&'static mut HeapBlock>, // a reference to the next heap block.
-    pub size: usize,                          // the size of the block.
     pub first: Hole,                          // a reference to the next hole in this heap.
 }
 
@@ -23,24 +31,27 @@ pub struct Hole {
     pub next: Option<&'static mut Hole>,
 }
 
-impl HeapBlock {
+impl<BS> HeapBlock<BS>
+where
+    BS: Unsigned,
+{
     /// Create a new heap block stored at the given location.
     /// FIXME: use constant block size ?
-    pub unsafe fn new(block_addr: usize, block_size: usize) -> &'static mut HeapBlock {
+    pub unsafe fn new(block_addr: usize) -> &'static mut HeapBlock {
         // Get pointers to start of block
         let ptr = block_addr as *mut HeapBlock;
         let hole_ptr = ptr.add(1) as *mut Hole;
 
         // Write the hole data
         hole_ptr.write(Hole {
-            size: block_size - size_of::<HeapBlock>(),
+            size: BS::to_usize() - size_of::<HeapBlock>(),
             next: None,
         });
 
         // Write the heap block data
         ptr.write(HeapBlock {
+            __block_size: PhantomData,
             next: None,
-            size: block_size,
             first: Hole {
                 size: 0,
                 next: Some(&mut *hole_ptr),
@@ -127,7 +138,7 @@ fn split_hole(hole: HoleInfo, required_layout: Layout) -> Option<Allocation> {
         (hole.addr, None)
     } else {
         // the required alignment causes some padding before the allocation
-        let aligned_addr = align_up(hole.addr + HeapBlock::min_size(), required_align);
+        let aligned_addr = align_up(hole.addr + HeapBlock::<U1>::min_size(), required_align);
         (
             aligned_addr,
             Some(HoleInfo {
@@ -151,7 +162,7 @@ fn split_hole(hole: HoleInfo, required_layout: Layout) -> Option<Allocation> {
     let back_padding = if aligned_hole.size == required_size {
         // the aligned hole has exactly the size that's needed, no padding accrues
         None
-    } else if aligned_hole.size - required_size < HeapBlock::min_size() {
+    } else if aligned_hole.size - required_size < HeapBlock::<U1>::min_size() {
         // we can't use this hole since its remains would form a new, too small hole
         return None;
     } else {
@@ -207,7 +218,7 @@ fn allocate_first_fit(mut previous: &mut Hole, layout: Layout) -> Result<Allocat
 /// find the correct place (the list is sorted by address).
 fn deallocate(mut hole: &mut Hole, addr: usize, mut size: usize) {
     loop {
-        assert!(size >= HeapBlock::min_size());
+        assert!(size >= HeapBlock::<U1>::min_size());
 
         let hole_addr = if hole.size == 0 {
             // It's the dummy hole, which is the head of the HoleList. It's somewhere on the stack,
@@ -304,13 +315,14 @@ fn move_helper<T>(x: T) -> T {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use typenum::U4096;
 
     #[test]
     fn test_heapblock_new() {
         unsafe {
             let mut block = [0u8; 4096];
             let addr = block[..].as_ptr() as usize;
-            let block = HeapBlock::new(addr, block.len());
+            let block = HeapBlock::<U4096>::new(addr);
 
             assert_eq!(block.first.size, 0);
             assert!(block.first.next.is_some());
@@ -323,7 +335,7 @@ mod tests {
         unsafe {
             let mut block = [0u8; 4096];
             let addr = block[..].as_ptr() as usize;
-            let block = HeapBlock::new(addr, block.len());
+            let block = HeapBlock::<U4096>::new(addr);
             let layout = Layout::from_size_align_unchecked(32, 1);
 
             if let Ok(alloc) = block.allocate_first_fit(layout) {

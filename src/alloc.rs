@@ -142,7 +142,7 @@ where
 
         // Pad the layout to the minimum legal size
         let block_layout = {
-            let mut size = max(HeapBlock::min_size(), layout.size());
+            let mut size = max(HeapBlock::<BS>::min_size(), layout.size());
             Layout::from_size_align_unchecked(align_up(size, align_of::<Hole>()), layout.align())
         };
 
@@ -164,7 +164,7 @@ where
         };
 
         // Initialize the block and use it to allocate
-        let new_block = HeapBlock::new(new_heap_ptr as usize, new_heap_layout.size());
+        let new_block = HeapBlock::<BS>::new(new_heap_ptr as usize);
         let new_block_ptr = match new_block.allocate_first_fit(block_layout) {
             Ok(mem) => mem.as_ptr() as *mut _,
             Err(_) => return ::core::ptr::null_mut::<u8>(),
