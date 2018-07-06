@@ -7,6 +7,7 @@ use core::marker::PhantomData;
 use core::mem::align_of;
 use core::ptr::NonNull;
 
+use typenum::consts::U16384;
 use typenum::consts::U32768;
 use typenum::consts::U4096;
 use typenum::consts::U65536;
@@ -37,12 +38,12 @@ use super::Mutex;
 /// * **BS** (block size): the size of a single heap block.
 /// * **BA** (block alignment): the alignment required for a heap block.
 /// * **LS** (large block size): the size above which an individual block is
-///   allocated instead of using heap blocks.
-//    *Must be lower than the block size !*
+///   allocated instead of using heap blocks. A typical value is 1/4th of the
+///   block size. *Undefined behaviour if not lower than the block size !*
 /// * **LA** (large block alignment): the alignment required for a large block.
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
-pub struct Allocator<A, BS = U65536, BA = U4096, LS = U32768, LA = U4096>
+pub struct Allocator<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
     BS: Unsigned,
