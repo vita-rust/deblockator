@@ -15,12 +15,9 @@ alias = "build"
 
 ### TESTING ####################################################################
 
-[tasks.xbuild]
-args = ["build", "--target=armv7-vita-eabihf", "--release", "-vv", "--all-features"]
-
 [tasks.build-native]
 command = "cargo"
-args = ["build"]
+args = ["build", "--all-features"]
 
 [tasks.test-native]
 command = "cargo"
