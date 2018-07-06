@@ -12,6 +12,9 @@ categories = ["no-std", "memory-management"]
 [dependencies]
 typenum = "^1.0.0"
 
+[dev-dependencies]
+jemallocator = { version = "^0.1.0", features = ["alloc_trait"] }
+
 [target.'cfg(target_os = "vita")'.dependencies]
 vita-mutex = { git = "https://github.com/vita-rust/vita-mutex" }
 
