@@ -7,6 +7,7 @@ use core::marker::PhantomData;
 use core::mem::align_of;
 use core::ptr::NonNull;
 
+use spin::Mutex;
 use typenum::consts::U16384;
 use typenum::consts::U32768;
 use typenum::consts::U4096;
@@ -17,7 +18,6 @@ use typenum::Unsigned;
 use super::hole::HeapBlock;
 use super::hole::Hole;
 use super::utils::align_up;
-use super::Mutex;
 
 /// A generic allocator using a linked heap made of smaller blocks.
 ///
@@ -35,12 +35,12 @@ use super::Mutex;
 /// from the [`typenum`](https://docs.rs/typenum) crate. The parameters are
 /// defined (in the order of appearance in the struct signature):
 ///
-/// * **BS** (block size): the size of a single heap block.
-/// * **BA** (block alignment): the alignment required for a heap block.
-/// * **LS** (large block size): the size above which an individual block is
+/// * **`BS`** (block size): the size of a single heap block.
+/// * **`BA`** (block alignment): the alignment required for a heap block.
+/// * **`LS`** (large block size): the size above which an individual block is
 ///   allocated instead of using heap blocks. A typical value is 1/4th of the
 ///   block size. *Undefined behaviour if not lower than the block size !*
-/// * **LA** (large block alignment): the alignment required for a large block.
+/// * **`LA`** (large block alignment): the alignment required for a large block.
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
 pub struct Allocator<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
