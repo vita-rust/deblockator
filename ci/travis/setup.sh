@@ -51,6 +51,21 @@ else
 fi
 
 
+### Setup xargo ################################################################
+
+echo -n "Fetching latest available 'xargo' version... "
+INSTALLED=$(_installed xargo)
+LATEST=$(_latest xargo)
+echo "${LATEST} (installed: ${INSTALLED})"
+
+if [ "$INSTALLED" = "$LATEST" ]; then
+  echo "Using cached 'xargo'"
+else
+  echo "Compiling latest 'xargo' from source"
+  cargo install --debug -f xargo
+fi
+
+
 ### Setup vdpm #################################################################
 
 echo "Fetching latest Vita SDK..."
