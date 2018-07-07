@@ -37,10 +37,10 @@ where
 {
     /// Create a new heap block stored at the given location.
     /// FIXME: use constant block size ?
-    pub unsafe fn new(block_addr: usize) -> &'static mut HeapBlock {
-        // Get pointers to start of block
-        let ptr = block_addr as *mut HeapBlock;
-        let hole_ptr = ptr.add(1) as *mut Hole;
+    pub unsafe fn new(block_ptr: NonNull<HeapBlock>) -> &'static mut HeapBlock {
+        // The first hole comes right after the HeapBlock data in the
+        // block, so we shift the block_ptr offset by size_of::<HeapBlock>()
+        let hole_ptr = block_ptr.as_ptr().add(1) as *mut Hole; // FIXME ?
 
         // Write the hole data
         hole_ptr.write(Hole {
@@ -49,7 +49,7 @@ where
         });
 
         // Write the heap block data
-        ptr.write(HeapBlock {
+        block_ptr.as_ptr().write(HeapBlock {
             __block_size: PhantomData,
             next: None,
             first: Hole {
@@ -58,7 +58,7 @@ where
             },
         });
 
-        &mut *(block_addr as *mut HeapBlock)
+        &mut *block_ptr.as_ptr()
     }
 
     /// Searches the list for a big enough hole. A hole is big enough if it can hold an allocation
@@ -322,8 +322,8 @@ mod tests {
     fn heapblock_new() {
         unsafe {
             let mut block = [0u8; 4096];
-            let addr = block[..].as_ptr() as usize;
-            let block = HeapBlock::<U4096>::new(addr);
+            let addr = NonNull::new_unchecked(block[..].as_mut_ptr());
+            let block = HeapBlock::<U4096>::new(addr.cast());
 
             assert_eq!(block.first.size, 0);
             assert!(block.first.next.is_some());
@@ -332,30 +332,23 @@ mod tests {
     }
 
     #[test]
-    /// Check allocation works as expected.
-    fn heapblock_alloc() {
+    /// Check successive allocs / deallocs take place at the same adress.
+    fn heapblock_alloc_dealloc() {
         unsafe {
             let mut block = [0u8; 4096];
-            let addr = block[..].as_ptr() as usize;
+            let addr = NonNull::new_unchecked(block.as_mut().as_mut_ptr()).cast();
             let block = HeapBlock::<U4096>::new(addr);
             let layout = Layout::from_size_align_unchecked(32, 1);
 
             if let Ok(alloc) = block.allocate_first_fit(layout) {
-                assert_eq!(
-                    alloc.as_ptr() as usize,
-                    addr as usize + size_of::<HeapBlock>()
-                );
-
+                assert_eq!(alloc.cast().as_ptr(), addr.as_ptr().add(1));
                 block.deallocate(alloc, Layout::from_size_align_unchecked(32, 1));
             } else {
                 panic!("Could not allocate block.")
             }
 
             if let Ok(alloc) = block.allocate_first_fit(layout) {
-                assert_eq!(
-                    alloc.as_ptr() as usize,
-                    addr as usize + size_of::<HeapBlock>()
-                );
+                assert_eq!(alloc.cast().as_ptr(), addr.as_ptr().add(1));
             } else {
                 panic!("Could not allocate block.")
             }

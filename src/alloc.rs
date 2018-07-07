@@ -179,13 +179,13 @@ where
         // No block can contain the requested layout: allocate a new one !
         let new_heap_layout = Layout::from_size_align_unchecked(BS::to_usize(), BA::to_usize());
         let new_heap_ptr = match allocator.alloc(new_heap_layout) {
-            Ok(ptr) => ptr.as_ptr() as *mut u8,
+            Ok(ptr) => NonNull::new(ptr.as_ptr() as *mut HeapBlock).unwrap(),
             Err(_) => return ::core::ptr::null_mut::<u8>(),
             // Err(_) => return 0xDEADBEEF as usize as *mut _,
         };
 
         // Initialize the block and use it to allocate
-        let new_block = HeapBlock::<BS>::new(new_heap_ptr as usize);
+        let new_block = HeapBlock::<BS>::new(new_heap_ptr);
         let new_block_ptr = match new_block.allocate_first_fit(block_layout) {
             Ok(mem) => mem.as_ptr() as *mut _,
             Err(_) => return ::core::ptr::null_mut::<u8>(),
