@@ -19,6 +19,7 @@ use super::hole::HeapBlock;
 use super::hole::Hole;
 use super::utils::align_up;
 
+#[cfg(not(test))]
 /// A generic allocator using a linked heap made of smaller blocks.
 ///
 /// Horizontal heap-growth allows to emulate a vertically-infinite heap using
@@ -58,6 +59,25 @@ where
     mutex: Mutex<()>,
     block_allocator: UnsafeCell<A>,
     first_block: UnsafeCell<Option<&'static mut HeapBlock>>,
+}
+
+#[cfg(test)]
+/// Test definition with public variables.
+pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
+where
+    A: Alloc,
+    BS: Unsigned,
+    BA: Unsigned + PowerOfTwo,
+    LS: Unsigned,
+    LA: Unsigned + PowerOfTwo,
+{
+    __block_size: PhantomData<BS>,
+    __block_padding: PhantomData<BA>,
+    __large_size: PhantomData<LS>,
+    __large_padding: PhantomData<LA>,
+    pub mutex: Mutex<()>,
+    pub block_allocator: UnsafeCell<A>,
+    pub first_block: UnsafeCell<Option<&'static mut HeapBlock>>,
 }
 
 unsafe impl<A, BS, BA, LS, LA> Sync for Vitalloc<A, BS, BA, LS, LA>
@@ -192,4 +212,127 @@ where
 
         drop(lock)
     }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    use core::alloc::AllocErr;
+    use core::mem::size_of;
+
+    use typenum::consts::U2048;
+
+    struct MockAlloc {
+        pub allocated: [bool; 3],
+        pub blocks: [[u8; 4096]; 3],
+    }
+
+    impl MockAlloc {
+        pub fn new() -> Self {
+            Self {
+                allocated: [false; 3],
+                blocks: [[0; 4096], [0; 4096], [0; 4096]],
+            }
+        }
+    }
+
+    unsafe impl Alloc for MockAlloc {
+        unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
+            for i in 0..self.blocks.len() {
+                if !self.allocated[i] {
+                    self.allocated[i] = true;
+                    return NonNull::new(self.blocks[i].as_mut().as_mut_ptr()).ok_or(AllocErr);
+                }
+            }
+            Err(AllocErr)
+        }
+
+        unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
+            for i in 0..self.blocks.len() {
+                if ptr.as_ptr() == self.blocks[i].as_mut().as_mut_ptr() {
+                    if !self.allocated[i] {
+                        panic!("double free")
+                    } else {
+                        self.allocated[i] = false;
+                        return;
+                    }
+                }
+            }
+            panic!("no such block !")
+        }
+    }
+
+    #[test]
+    /// Test the mock allocator works as expected.
+    fn mockalloc() {
+        unsafe {
+            let mut ma = MockAlloc::new();
+            let layout = Layout::from_size_align_unchecked(4096, 4096);
+
+            let pt1 = ma.alloc(layout).expect("could not allocate block 1");
+            let pt2 = ma.alloc(layout).expect("could not allocate block 2");
+            let pt3 = ma.alloc(layout).expect("could not allocate block 3");
+            ma.alloc(layout).expect_err("all blocks were not allocated");
+
+            for i in 0..3 {
+                assert!(ma.allocated[i]);
+            }
+
+            ma.dealloc(pt1, layout);
+            assert!(!ma.allocated[0]);
+
+            ma.dealloc(pt3, layout);
+            assert!(!ma.allocated[2]);
+
+            let pt4 = ma.alloc(layout).expect("could not allocate block 4");
+            assert!(ma.allocated[0]);
+            assert!(!ma.allocated[2]);
+            assert_eq!(pt4.as_ptr(), pt1.as_ptr());
+        }
+    }
+
+    #[test]
+    /// Check the underlying blocks are allocated as expected.
+    fn vitalloc_blocks() {
+        let ma = MockAlloc::new();
+        let va: Vitalloc<MockAlloc, U4096, U4096, U2048, U4096> = Vitalloc::new(ma);
+
+        unsafe {
+            // quick accessor to the allocated blocks
+            let allocated = || va.block_allocator.get().read().allocated;
+            let blocks = || va.block_allocator.get().read().blocks;
+
+            // Allocate a single boxed u32
+            let layout = Layout::from_size_align(32, 8).expect("bad layout");
+            let ptr1 = NonNull::new(va.alloc(layout)).expect("could not allocate 1");
+            ::core::ptr::write(ptr1.as_ptr(), 255);
+            assert_eq!(allocated(), [true, false, false]);
+
+            // Allocate a second boxed u32
+            let ptr2 = NonNull::new(va.alloc(layout)).expect("could not allocate 2");
+            ::core::ptr::write(ptr2.as_ptr(), 254);
+            assert_eq!(allocated(), [true, false, false]);
+
+            // Allocate a large object to the second block
+            let layout = Layout::from_size_align(3129, 4096).expect("bad layout");
+            let ptr3 = NonNull::new(va.alloc(layout)).expect("could not allocate 3");
+            assert_eq!(allocated(), [true, true, false]);
+
+            // Deallocate the first u32
+            let layout = Layout::from_size_align(32, 8).expect("bad layout");
+            va.dealloc(ptr1.as_ptr(), layout);
+
+            // FIXME: Reallocate the first u32 (hopefully at the same place)
+            // let ptr4 = NonNull::new(va.alloc(layout)).expect("could not allocate 4");
+            // assert_eq!(ptr4.as_ptr(), ptr1.as_ptr());
+
+            // Deallocate the large block
+            let layout = Layout::from_size_align(3129, 4096).expect("bad layout");
+            va.dealloc(ptr3.as_ptr(), layout);
+            assert_eq!(allocated(), [true, false, false]);
+        }
+    }
+
 }

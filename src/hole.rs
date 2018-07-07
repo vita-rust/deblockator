@@ -318,7 +318,8 @@ mod tests {
     use typenum::U4096;
 
     #[test]
-    fn test_heapblock_new() {
+    /// Check creating a heapblock from a ptr works as expected.
+    fn heapblock_new() {
         unsafe {
             let mut block = [0u8; 4096];
             let addr = block[..].as_ptr() as usize;
@@ -331,7 +332,8 @@ mod tests {
     }
 
     #[test]
-    fn test_heapblock_alloc() {
+    /// Check allocation works as expected.
+    fn heapblock_alloc() {
         unsafe {
             let mut block = [0u8; 4096];
             let addr = block[..].as_ptr() as usize;

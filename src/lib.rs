@@ -20,7 +20,9 @@
 //! The [`Vitalloc`] wraps another underlying allocator, and only uses it to
 //! allocate large memory blocks. It maintains a linked-list of small
 //! *heapblocks* which are constant-size memory blocks linked together
-//! to emulate a growable heap. Heapblocks have a default size of `64kB`.
+//! to emulate a growable heap. Heapblocks have a default size of `64kB`,
+//! but various parameters can be defined at compile time using numerics
+//! from the [`typenum`] crate.
 //!
 //! ## Allocation
 //!
@@ -69,7 +71,7 @@
 //!
 //! ## PS Vita target
 //!
-//! If you're compiling to PS Vita: use the included [`KernelVitalloc`], which
+//! If you're compiling to PS Vita: use the included [`KernelAllocator`], which
 //! wraps the `psp2` kernel API using [`psp2-sys`] bindings:
 //!
 //! ```rust,no_run
@@ -81,13 +83,16 @@
 //! static GLOBAL: Vitalloc<KernelAllocator> = Vitalloc::new(KernelAllocator::new());
 //! # fn main() {}
 //! ```
+//!
+//! [`spin`]: https://docs.rs/spin/
+//! [`typenum`]: https://docs.rs/typenum/
+//! [`Alloc`]: https://doc.rust-lang.org/nightly/std/alloc/trait.Alloc.html
+//! [`Vitalloc`]: struct.Vitalloc.html
+//! [`KernelAllocator`]: struct.KernelAllocator.html
 
 #![cfg_attr(not(test), no_std)]
-#![feature(alloc)]
 #![feature(allocator_api)]
 #![feature(const_fn)]
-#![feature(doc_cfg)]
-#![feature(trait_alias)]
 
 #[cfg(test)]
 use std as core;
