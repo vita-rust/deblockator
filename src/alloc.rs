@@ -47,7 +47,7 @@ use super::utils::align_up;
 pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -66,7 +66,7 @@ where
 pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -83,7 +83,7 @@ where
 unsafe impl<A, BS, BA, LS, LA> Sync for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -93,7 +93,7 @@ where
 unsafe impl<A, BS, BA, LS, LA> Send for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -103,7 +103,7 @@ where
 impl<A, BS, BA, LS, LA> Default for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc + Default,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -116,7 +116,7 @@ where
 impl<A, BS, BA, LS, LA> Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -144,7 +144,7 @@ where
 unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Vitalloc<A, BS, BA, LS, LA>
 where
     A: Alloc,
-    BS: Unsigned,
+    BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
@@ -199,18 +199,24 @@ where
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let lock = self.mutex.lock();
-
-        if layout.size() > LS::to_usize() {
+        if layout.size() >= LS::to_usize() {
             let allocator = &mut *self.block_allocator.get();
             allocator.dealloc(
                 NonNull::new(ptr).unwrap(),
                 self.padded(layout, LA::to_usize()),
             );
         } else {
-            // TODO
+            let mut block: *mut Option<&mut HeapBlock> = self.first_block.get();
+            while let Some(ref mut b) = *block {
+                if b.contains(ptr as *const u8) {
+                    b.deallocate(NonNull::new_unchecked(ptr), layout);
+                    return;
+                }
+                block = &mut b.next;
+            }
+            panic!("double free !")
         }
-
-        drop(lock)
+        drop(lock);
     }
 }
 
@@ -325,13 +331,27 @@ mod test {
             va.dealloc(ptr1.as_ptr(), layout);
 
             // FIXME: Reallocate the first u32 (hopefully at the same place)
-            // let ptr4 = NonNull::new(va.alloc(layout)).expect("could not allocate 4");
-            // assert_eq!(ptr4.as_ptr(), ptr1.as_ptr());
+            let ptr4 = NonNull::new(va.alloc(layout)).expect("could not allocate 4");
+            assert_eq!(ptr4.as_ptr(), ptr1.as_ptr());
 
             // Deallocate the large block
             let layout = Layout::from_size_align(3129, 4096).expect("bad layout");
             va.dealloc(ptr3.as_ptr(), layout);
             assert_eq!(allocated(), [true, false, false]);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn double_free() {
+        let ma = MockAlloc::new();
+        let va: Vitalloc<MockAlloc, U4096, U4096, U2048, U4096> = Vitalloc::new(ma);
+
+        let layout = Layout::from_size_align(32, 8).expect("bad layout");
+        unsafe {
+            let ptr1 = va.alloc(layout);
+            va.dealloc(ptr1, layout);
+            va.dealloc(ptr1, layout);
         }
     }
 

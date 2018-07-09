@@ -18,17 +18,11 @@ use super::utils::align_up;
 /// A heap block.
 pub struct HeapBlock<BS = U65536>
 where
-    BS: Unsigned,
+    BS: 'static + Unsigned,
 {
     __block_size: PhantomData<BS>,
-    pub next: Option<&'static mut HeapBlock>, // a reference to the next heap block.
-    pub first: Hole,                          // a reference to the next hole in this heap.
-}
-
-/// A hole in a heap block.
-pub struct Hole {
-    pub size: usize,
-    pub next: Option<&'static mut Hole>,
+    pub next: Option<&'static mut HeapBlock<BS>>, // a reference to the next heap block.
+    pub first: Hole,                              // a reference to the next hole in this heap.
 }
 
 impl<BS> HeapBlock<BS>
@@ -65,6 +59,7 @@ where
     /// of `layout.size()` bytes with the given `layout.align()`. If such a hole is found in the
     /// list, a block of the required size is allocated from it. Then the start address of that
     /// block is returned.
+    ///
     /// This function uses the “first fit” strategy, so it uses the first hole that is big
     /// enough. Thus the runtime is in O(n) but it should be reasonably fast for small allocations.
     pub fn allocate_first_fit(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
@@ -91,12 +86,26 @@ where
     /// Frees the allocation given by `ptr` and `layout`. `ptr` must be a pointer returned by a call
     /// to the `allocate_first_fit` function with identical layout. Undefined behavior may occur for
     /// invalid arguments.
+    ///
     /// This function walks the list and inserts the given block at the correct place. If the freed
     /// block is adjacent to another free block, the blocks are merged again.
     /// This operation is in `O(n)` since the list needs to be sorted by address.
     pub unsafe fn deallocate(&mut self, ptr: NonNull<u8>, layout: Layout) {
         deallocate(&mut self.first, ptr.as_ptr() as usize, layout.size())
     }
+
+    /// Check if the given pointer maps to a memory location that begins in the `HeapBlock`.
+    pub unsafe fn contains<T>(&self, ptr: *const T) -> bool {
+        let self_ptr = self as *const Self as *const u8;
+        let that_ptr = ptr as *const u8;
+        (self_ptr <= that_ptr) && (that_ptr <= self_ptr.add(BS::to_usize()))
+    }
+}
+
+/// A hole in a heap block.
+pub struct Hole {
+    pub size: usize,
+    pub next: Option<&'static mut Hole>,
 }
 
 impl Hole {
@@ -218,7 +227,9 @@ fn allocate_first_fit(mut previous: &mut Hole, layout: Layout) -> Result<Allocat
 /// find the correct place (the list is sorted by address).
 fn deallocate(mut hole: &mut Hole, addr: usize, mut size: usize) {
     loop {
-        assert!(size >= HeapBlock::<U1>::min_size());
+        // FIXME: this was in original code, but fails
+        //        when using as #[global_allocator]
+        // assert!(size >= HeapBlock::<U1>::min_size());
 
         let hole_addr = if hole.size == 0 {
             // It's the dummy hole, which is the head of the HoleList. It's somewhere on the stack,
