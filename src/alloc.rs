@@ -20,7 +20,7 @@ use super::hole::Hole;
 use super::utils::align_up;
 
 #[cfg(not(test))]
-/// A generic allocator using a linked heap made of smaller blocks.
+/// A global allocator using a linked heap made of smaller blocks.
 ///
 /// Horizontal heap-growth allows to emulate a vertically-infinite heap using
 /// independent memory blocks linked together as a linked list. This allows to
@@ -44,7 +44,7 @@ use super::utils::align_up;
 /// * **`LA`** (large block alignment): the alignment required for a large block.
 ///
 /// [`linked-list-allocator`]: https://crates.io/crates/linked-list-allocator
-pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
+pub struct Deblockator<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
     BS: Unsigned + 'static,
@@ -63,7 +63,7 @@ where
 
 #[cfg(test)]
 /// Test definition with public variables.
-pub struct Vitalloc<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
+pub struct Deblockator<A, BS = U65536, BA = U4096, LS = U16384, LA = U4096>
 where
     A: Alloc,
     BS: Unsigned + 'static,
@@ -80,27 +80,25 @@ where
     pub first_block: UnsafeCell<Option<&'static mut HeapBlock>>,
 }
 
-unsafe impl<A, BS, BA, LS, LA> Sync for Vitalloc<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> Sync for Deblockator<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
-{
-}
+{}
 
-unsafe impl<A, BS, BA, LS, LA> Send for Vitalloc<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> Send for Deblockator<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned + 'static,
     BA: Unsigned + PowerOfTwo,
     LS: Unsigned,
     LA: Unsigned + PowerOfTwo,
-{
-}
+{}
 
-impl<A, BS, BA, LS, LA> Default for Vitalloc<A, BS, BA, LS, LA>
+impl<A, BS, BA, LS, LA> Default for Deblockator<A, BS, BA, LS, LA>
 where
     A: Alloc + Default,
     BS: Unsigned + 'static,
@@ -113,7 +111,7 @@ where
     }
 }
 
-impl<A, BS, BA, LS, LA> Vitalloc<A, BS, BA, LS, LA>
+impl<A, BS, BA, LS, LA> Deblockator<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned + 'static,
@@ -123,7 +121,7 @@ where
 {
     /// Create a new allocator instance, wrapping the given allocator.
     pub const fn new(alloc: A) -> Self {
-        Vitalloc {
+        Deblockator {
             __block_size: PhantomData,
             __block_padding: PhantomData,
             __large_size: PhantomData,
@@ -141,7 +139,7 @@ where
     }
 }
 
-unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Vitalloc<A, BS, BA, LS, LA>
+unsafe impl<A, BS, BA, LS, LA> GlobalAlloc for Deblockator<A, BS, BA, LS, LA>
 where
     A: Alloc,
     BS: Unsigned + 'static,
@@ -301,9 +299,9 @@ mod test {
 
     #[test]
     /// Check the underlying blocks are allocated as expected.
-    fn vitalloc_blocks() {
+    fn deblockator_blocks() {
         let ma = MockAlloc::new();
-        let va: Vitalloc<MockAlloc, U4096, U4096, U2048, U4096> = Vitalloc::new(ma);
+        let va: Deblockator<MockAlloc, U4096, U4096, U2048, U4096> = Deblockator::new(ma);
 
         unsafe {
             // quick accessor to the allocated blocks
@@ -345,7 +343,7 @@ mod test {
     #[should_panic]
     fn double_free() {
         let ma = MockAlloc::new();
-        let va: Vitalloc<MockAlloc, U4096, U4096, U2048, U4096> = Vitalloc::new(ma);
+        let va: Deblockator<MockAlloc, U4096, U4096, U2048, U4096> = Deblockator::new(ma);
 
         let layout = Layout::from_size_align(32, 8).expect("bad layout");
         unsafe {

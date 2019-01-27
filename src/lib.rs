@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Martin Larralde (martin.larralde@ens-paris-saclay.fr)
+// Copyright (c) 2018-2019 Martin Larralde (martin.larralde@ens-paris-saclay.fr)
 //
 // Licensed under MIT license (the COPYING file). This file may not be
 // copied, modified, or distributed except according to those terms.
@@ -17,7 +17,7 @@
 //!
 //! # Algorithm
 //!
-//! The [`Vitalloc`] wraps another underlying allocator, and only uses it to
+//! The [`Deblockator`] wraps another underlying allocator, and only uses it to
 //! allocate large memory blocks. It maintains a linked-list of small
 //! *heapblocks* which are constant-size memory blocks linked together
 //! to emulate a growable heap. Heapblocks have a default size of `64kB`,
@@ -45,7 +45,7 @@
 //!
 //! ## Synchronisation
 //!
-//! The [`Vitalloc`] can wraps non-global allocator, and needs a synchronisation
+//! The [`Deblockator`] can wraps non-global allocator, and needs a synchronisation
 //! primitive to avoid race conditions. This is done using a *spinning mutex*
 //! from the [`spin`] crate.
 //!
@@ -53,46 +53,50 @@
 //!
 //! ## Generic usage
 //!
-//! The provided [`Vitalloc`] wraps any object implementing [`Alloc`]. For
-//! instance, to use [`Vitalloc`] with the `system_allocator` to allocate the
+//! The provided [`Deblockator`] wraps any object implementing [`Alloc`]. For
+//! instance, to use [`Deblockator`] with `jemalloc` to allocate the
 //! heapblocks:
 //! ```rust,no_run
-//! #![feature(global_allocator, alloc_system)]
-//! extern crate alloc_system;
-//! extern crate vitalloc;
+//! #![feature(global_allocator)]
+//! extern crate jemallocator;
+//! extern crate deblockator;
 //!
-//! use alloc_system::System;
-//! use vitalloc::Vitalloc;
+//! use jemallocator::Jemalloc;
+//! use deblockator::Deblockator;
 //!
 //! #[global_allocator]
-//! static GLOBAL: Vitalloc<System> = Vitalloc::new(System);
+//! static GLOBAL: Deblockator<Jemalloc> = Deblockator::new(Jemalloc);
 //! # fn main() {}
 //! ```
 //!
 //! ## PS Vita target
 //!
-//! If you're compiling to PS Vita: use the included [`KernelAllocator`], which
+//! If you're compiling to PS Vita: use the [`Vitallocator`], which
 //! wraps the `psp2` kernel API using [`psp2-sys`] bindings:
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! #![feature(global_allocator)]
-//! extern crate vitalloc;
-//! use vitalloc::{Vitalloc, KernelAllocator};
+//! extern crate deblockator;
+//! extern crate vitallocator;
+//!
+//! use deblockator::Deblockator;
+//! use vitallocator::Vitallocator;
 //!
 //! #[global_allocator]
-//! static GLOBAL: Vitalloc<KernelAllocator> = Vitalloc::new(KernelAllocator::new());
+//! static GLOBAL: Deblockator<Vitallocator> = Deblockator::new(Vitallocator::new());
 //! # fn main() {}
 //! ```
 //!
 //! [`spin`]: https://docs.rs/spin/
 //! [`typenum`]: https://docs.rs/typenum/
 //! [`Alloc`]: https://doc.rust-lang.org/nightly/std/alloc/trait.Alloc.html
-//! [`Vitalloc`]: struct.Vitalloc.html
+//! [`Vitallocator`]: struct.Vitalloc.html
 //! [`KernelAllocator`]: struct.KernelAllocator.html
 
 #![cfg_attr(not(test), no_std)]
 #![feature(allocator_api)]
 #![feature(const_fn)]
+#![feature(alloc_layout_extra)]
 
 #[cfg(test)]
 use std as core;
@@ -107,7 +111,7 @@ mod hole;
 mod utils;
 
 // Public reexport of the generic allocator.
-pub use alloc::Vitalloc;
+pub use alloc::Deblockator;
 
 // Feature compilation of the kernel allocator
 cfg_if! {

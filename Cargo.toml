@@ -1,26 +1,22 @@
 [package]
-name = "vitalloc"
+name = "deblockator"
 version = "0.1.0"
-authors = ["Martin Larralde <martin.larralde@ens-cachan.fr>"]
+authors = ["Martin Larralde <martin.larralde@ens-paris-saclay.fr>"]
 license = "MIT"
-description = "A platform-agnostic allocator designed for the PS Vita"
+description = "A global allocator to wrap fixed size block allocators"
 repository = "https://github.com/vita-rust/vitalloc"
 readme = "README.md"
 keywords = ["ps-vita", "allocator"]
 categories = ["no-std", "memory-management"]
+edition = "2018"
 
 [dependencies]
-cfg-if = "^0.1"
 typenum = "^1.0.0"
 spin = "^0.4.0"
-psp2-sys = { version = "^0.2", optional = true }
+cfg-if = "*"
 
 [dev-dependencies]
 jemallocator = { version = "^0.1.0", features = ["alloc_trait"] }
-
-[features]
-default = []
-kernel-allocator = ["psp2-sys"]
 
 [badges]
 travis-ci   = { repository = "vita-rust/vitalloc" }

@@ -1,13 +1,13 @@
 extern crate jemallocator;
-extern crate vitalloc;
+extern crate deblockator;
 
 use jemallocator::Jemalloc;
-use vitalloc::Vitalloc;
+use deblockator::Deblockator;
 
 mod cases;
 
 #[global_allocator]
-static GLOBAL: Vitalloc<Jemalloc> = Vitalloc::new(Jemalloc);
+static GLOBAL: Deblockator<Jemalloc> = Deblockator::new(Jemalloc);
 
 #[test]
 fn test_small_alloc() {
