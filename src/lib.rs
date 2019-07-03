@@ -90,7 +90,7 @@
 //! [`spin`]: https://docs.rs/spin/
 //! [`typenum`]: https://docs.rs/typenum/
 //! [`Alloc`]: https://doc.rust-lang.org/nightly/std/alloc/trait.Alloc.html
-//! [`Vitallocator`]: struct.Vitalloc.html
+//! [`Vitallocator`]: https://docs.rs/vitallocator/latest/vitallocator/struct.Vitallocator.html
 //! [`KernelAllocator`]: struct.KernelAllocator.html
 
 #![cfg_attr(not(test), no_std)]
@@ -101,8 +101,6 @@
 #[cfg(test)]
 use std as core;
 
-#[macro_use]
-extern crate cfg_if;
 extern crate spin;
 extern crate typenum;
 
@@ -112,12 +110,3 @@ mod utils;
 
 // Public reexport of the generic allocator.
 pub use alloc::Deblockator;
-
-// Feature compilation of the kernel allocator
-cfg_if! {
-    if #[cfg(feature = "kernel-allocator")] {
-        extern crate psp2_sys;
-        mod kernel;
-        pub use kernel::KernelAllocator;
-    }
-}
