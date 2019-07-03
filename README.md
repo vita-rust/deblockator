@@ -1,6 +1,9 @@
 # `deblockator`
 
-*A platform-agnostic memory allocator designed for the PS Vita*
+*A platform-agnostic memory allocator designed for [block allocators].*
+
+[block allocators]: https://en.wikipedia.org/wiki/Memory_management#FIXED-SIZE
+
 
 [![TravisCI](https://img.shields.io/travis/vita-rust/deblockator/master.svg?maxAge=600&style=flat-square)](https://travis-ci.org/vita-rust/deblockator/builds)
 [![Codecov](https://img.shields.io/codecov/c/github/vita-rust/deblockator.svg?maxAge=600&style=flat-square)](https://codecov.io/github/vita-rust/deblockator)
@@ -20,8 +23,9 @@ memory block, it is not the most efficient to do so considering there is a
 proper allocator available.
 
 The `deblockator` allocator relies on another allocator to obtain data blocks, and
-then uses classic allocation techniques to provide smaller memory chunks within
-those blocks.
+then uses a classic linked-list approachs to provide smaller memory chunks within
+those blocks. This allows growing a virtually infinite heap without needing to 
+preallocate a large block on startup.
 
 ## Usage
 
@@ -37,8 +41,8 @@ You'll need to have the `armv7-vita-eabihf` target specification in your
 `$RUST_TARGET_PATH`. If you don't have it, you can find in its dedicated
 [git repository](https://github.com/vita-rust/common).
 
-When compiling for the PS Vita, use the `Vitallocator` from the
-[`vitallocator`](https://github.com/vita-rust/vitallocator) crate
+When compiling for the PS Vita, use the `Vitallocator` struct from
+the [`vitallocator`](https://github.com/vita-rust/vitallocator) crate
 and wrap it within the `Deblockator` struct:
 ```rust
 #![feature(global_allocator)]
@@ -58,8 +62,9 @@ Compiling to the PS Vita requires the [`psp2-sys`](https://github.com/vita-rust/
 ## Credits
 
 * [**Philipp Oppermann**](https://github.com/phil-opp/) for the
-  [Writing an OS in Rust], in particular the [Kernel Heap] section, as well
-  as the [`linked_list_allocator`] crate.
+  [Writing an OS in Rust], in particular the [Kernel Heap] section, 
+  as well as the [`linked_list_allocator`] crate this implementation
+  is derived from.
 
 [Writing an OS in Rust]: https://os.phil-opp.com/
 [Kernel Heap]: https://os.phil-opp.com/kernel-heap/
