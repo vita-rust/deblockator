@@ -160,7 +160,7 @@ where
 
         // Pad the layout to the minimum legal size
         let block_layout = {
-            let mut size = max(HeapBlock::<BS>::min_size(), layout.size());
+            let size = max(HeapBlock::<BS>::min_size(), layout.size());
             Layout::from_size_align_unchecked(align_up(size, align_of::<Hole>()), layout.align())
         };
 
